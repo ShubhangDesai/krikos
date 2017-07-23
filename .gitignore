@@ -2,3 +2,9 @@
 __pycache__
 datasets
 test.py
+.pypirc
+setup.py
+dist/
+krikos.egg-info/
+MANIFEST
+build/
