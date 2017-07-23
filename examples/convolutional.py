@@ -1,10 +1,10 @@
-from data.Loader import *
-from nn.Layer import Convolutional, Flatten, ReLU, BatchNorm2d, MaxPooling
-from nn.Network import Sequential
-from nn.Regularization import L2
+from krikos.data.loader import *
+from krikos.nn.layer import Convolutional, Flatten, ReLU, BatchNorm2d, MaxPooling
+from krikos.nn.network import Sequential
+from krikos.nn.regularization import L2
 
-from data.utils import *
-from nn.Loss import SoftmaxCrossEntropyLoss
+from krikos.data.utils import *
+from krikos.nn.loss import SoftmaxCrossEntropyLoss
 
 loader = Loader(batch_size=16)
 

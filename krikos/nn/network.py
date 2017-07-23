@@ -1,6 +1,6 @@
 import numpy as np
 
-from nn.Layer import BatchNorm, BatchNorm2d, Dropout
+from krikos.nn.layer import BatchNorm, BatchNorm2d, Dropout
 
 
 class Network(object):

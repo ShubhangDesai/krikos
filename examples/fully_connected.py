@@ -1,8 +1,8 @@
 import numpy as np
+from krikos.nn.layer import Linear
+from krikos.nn.network import Sequential
 
-from nn.Layer import Linear
-from nn.Loss import SoftmaxCrossEntropyLoss
-from nn.Network import Sequential
+from krikos.nn.loss import SoftmaxCrossEntropyLoss
 
 X = np.array([[1, 1, 0, 1], [0, 1, 0, 1], [0, 1, 0, 1], [1, 0, 1, 0],
               [0, 1, 1, 0], [1, 0, 1, 1], [0, 0, 0, 0], [1, 1, 1, 0],
