@@ -1,6 +1,8 @@
-from Layer import Linear
-from Loss import SoftmaxCrossEntropyLoss
-from Network import *
+import numpy as np
+
+from nn.Layer import Linear
+from nn.Loss import SoftmaxCrossEntropyLoss
+from nn.Network import Sequential
 
 X = np.array([[1, 1, 0, 1], [0, 1, 0, 1], [0, 1, 0, 1], [1, 0, 1, 0],
               [0, 1, 1, 0], [1, 0, 1, 1], [0, 0, 0, 0], [1, 1, 1, 0],
@@ -24,9 +26,9 @@ def eval_accuracy(pred, target):
 layers = [Linear(4, 2)]
 loss = SoftmaxCrossEntropyLoss()
 
-fully_connected_network = Network(layers, loss, 1e-2)
+fully_connected_network = Sequential(layers, loss, 1e-2)
 
-for i in range(500):
+for i in range(4000):
     indeces = np.random.choice(X_train.shape[0], 4)
     batch = X_train[indeces, :]
     target = y_train[indeces]

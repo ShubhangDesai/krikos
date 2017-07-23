@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class Loss(object):
     def __init__(self):
         super(Loss, self).__init__()
@@ -11,12 +12,13 @@ class Loss(object):
     def backward(self):
         raise NotImplementedError
 
+
 class SoftmaxCrossEntropyLoss(Loss):
     def __init__(self):
         super(SoftmaxCrossEntropyLoss, self).__init__()
 
     def forward(self, input, y):
-        batch_size = input.shape[1]
+        batch_size = input.shape[0]
         indeces = np.arange(batch_size)
 
         exp = np.exp(input)
