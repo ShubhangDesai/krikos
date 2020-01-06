@@ -1,4 +1,5 @@
 import numpy as np
+import krikos.nn.utils as utils
 
 
 class Layer(object):
@@ -305,5 +306,154 @@ class Dropout(Layer):
     def backward(self, dout):
         p, mask = self.p, self.cache['mask']
         dx = dout * mask / (1 - p)
+
+        return dx
+
+## RECURRENT LAYERS
+
+class VanillaRNN(Layer):
+    def __init__(self, input_dim, hidden_dim):
+        super(VanillaRNN, self).__init__()
+        self.params['Wh'] = np.random.randn(hidden_dim, hidden_dim)
+        self.params['Wx'] = np.random.randn(input_dim, hidden_dim)
+        self.params['b'] = np.zeros(hidden_dim)
+        self.D, self.H = input_dim, hidden_dim
+
+    def forward_step(self, input, prev_h):
+        cell = np.matmul(prev_h, self.params['Wh']) + np.matmul(input, self.params['Wx']) + self.params['b']
+        next_h = np.tanh(cell)
+
+        self.cache['caches'].append((input, prev_h, next_h))
+
+        return next_h
+
+    def forward(self, input):
+        N, T, _ = input.shape
+        D, H = self.D, self.H
+        self.cache['caches'] = []
+        h = np.zeros((N, T, H))
+
+        h_cur = np.zeros((input.shape[0], H))
+        for t in range(T):
+            h_cur = self.forward_step(input[:, t, :], h_cur)
+            h[:, t, :] = h_cur
+
+        return h
+
+    def backward_step(self, dnext_h, cache):
+        input, prev_h, next_h = cache
+        dcell = (1 - next_h ** 2) * dnext_h
+
+        dx = np.matmul(dcell, self.params['Wx'].T)
+        dprev_h = np.matmul(dcell, self.params['Wh'].T)
+
+        dWx = np.matmul(input.T, dcell)
+        dWh = np.matmul(prev_h.T, dcell)
+
+        db = np.sum(dcell, axis=0)
+
+        return dx, dprev_h, dWx, dWh, db
+
+    def backward(self, dout):
+        N, T, _ = dout.shape
+        D, H = self.D, self.H
+        caches = self.cache['caches']
+        dx, dh0, dWx, dWh, db = np.zeros((N, T, D)), np.zeros((N, H)), np.zeros((D, H)), np.zeros((H, H)), np.zeros(H)
+
+        for t in range(T - 1, -1, -1):
+            dx[:, t, :], dh0, dWx_cur, dWh_cur, db_cur = self.backward_step(dout[:, t, :] + dh0, caches[t])
+            dWx += dWx_cur
+            dWh += dWh_cur
+            db += db_cur
+
+        self.grads['Wx'], self.grads['Wh'], self.grads['b'] = dWx, dWh, db
+
+        return dx
+
+class LSTM(Layer):
+    def __init__(self, input_dim, hidden_dim):
+        super(LSTM, self).__init__()
+        self.params['W'], self.params['b'] = np.random.randn(input_dim + hidden_dim, 4 * hidden_dim) * 0.01, np.zeros(4 * hidden_dim)
+        self.D, self.H = input_dim, hidden_dim
+
+    def forward_step(self, input, prev_h, prev_c):
+        N, _ = prev_h.shape
+        H = self.H
+        input = np.concatenate((input, prev_h), axis=1)
+        gates = np.matmul(input, self.params['W']) + self.params['b']
+
+        i = utils.sigmoid(gates[:, 0:H])
+        f = utils.sigmoid(gates[:, H:2 * H])
+        o = utils.sigmoid(gates[:, 2 * H:3 * H])
+        g = np.tanh(gates[:, 3 * H:4 * H])
+
+        next_c = f * prev_c + i * g
+        next_h = o * np.tanh(next_c)
+
+        self.cache['caches'].append((input, prev_c, i, f, o, g, next_c, next_h))
+
+        return next_h, next_c
+
+    def forward(self, input):
+        N, T, _ = input.shape
+        D, H = self.D, self.H
+        self.cache['caches'] = []
+
+        h = np.zeros((N, T, H))
+        h_prev = np.zeros((input.shape[0], H))
+        c = np.zeros((N, H))
+        for t in range(T):
+            x_curr = input[:, t, :]
+            h_prev, c = self.forward_step(x_curr, h_prev, c)
+            h[:, t, :] = h_prev
+
+        return h
+
+    def backward_step(self, dnext_h, dnext_c, cache):
+        input, prev_c, i, f, o, g, next_c, next_h = cache
+        D = self.D
+
+        dtanh_next_c = dnext_h * o
+        dcell = (1 - next_h ** 2) * dnext_h
+        dnext_c += dtanh_next_c * dcell
+
+        dc = dnext_c * f
+
+        di = dnext_c * g
+        df = dnext_c * prev_c
+        do = dnext_h * np.tanh(next_c)
+        dg = dnext_c * i
+
+        dgates1 = di * i * (1 - i)
+        dgates2 = df * f * (1 - f)
+        dgates3 = do * o * (1 - o)
+        dgates4 = dg * (1 - g ** 2)
+        dgates = np.concatenate((dgates1, dgates2, dgates3, dgates4), axis=1)
+
+        db = np.sum(dgates, axis=0)
+
+        dW = np.matmul(input.T, dgates)
+
+        dinput = np.matmul(dgates, self.params['W'].T)
+        dx = dinput[:, :D]
+        dh = dinput[:, D:]
+
+        return dx, dh, dc, dW, db
+
+    def backward(self, dout):
+        N, T, _ = dout.shape
+        D, H = self.D, self.H
+        dx, dh0, dW, db, dc = np.zeros((N, T, D)), np.zeros((N, H)), np.zeros((D + H, 4 * H)), np.zeros(4 * H), np.zeros((N, H))
+        caches = self.cache['caches']
+
+
+        for t in range(T - 1, -1, -1):
+            dx[:, t, :], dh0, dc, dW_cur, db_cur = self.backward_step(dout[:, t, :] + dh0, dc, caches[t])
+            dW += dW_cur
+            db += db_cur
+
+        dW, db = np.clip(dW, a_min=None, a_max=1), np.clip(db, a_min=None, a_max=1)
+
+        self.grads['W'], self.grads['b'] = dW, db
 
         return dx

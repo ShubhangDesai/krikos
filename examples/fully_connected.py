@@ -1,8 +1,8 @@
 import numpy as np
 from krikos.nn.layer import Linear
 from krikos.nn.network import Sequential
-
-from krikos.nn.loss import SoftmaxCrossEntropyLoss
+from krikos.nn.loss import SoftmaxCrossEntropy
+import krikos.data.utils as utils
 
 X = np.array([[1, 1, 0, 1], [0, 1, 0, 1], [0, 1, 0, 1], [1, 0, 1, 0],
               [0, 1, 1, 0], [1, 0, 1, 1], [0, 0, 0, 0], [1, 1, 1, 0],
@@ -17,14 +17,8 @@ y_train = y[:8]
 y_val = y[8:12]
 y_test = y[12:16]
 
-def eval_accuracy(pred, target):
-    target = np.reshape(target, (target.shape[0]))
-    correct = np.sum(pred == target)
-    accuracy = correct / pred.shape[0] * 100
-    return accuracy
-
 layers = [Linear(4, 2)]
-loss = SoftmaxCrossEntropyLoss()
+loss = SoftmaxCrossEntropy()
 
 fully_connected_network = Sequential(layers, loss, 1e-2)
 
@@ -36,13 +30,13 @@ for i in range(4000):
     pred, loss = fully_connected_network.train(batch, target)
 
     if (i+1) % 25 == 0:
-        accuracy = eval_accuracy(pred, target)
+        accuracy = utils.eval_accuracy(pred, target)
         print("Training Accuracy: %f" % accuracy)
 
     if (i+1) % 100 == 0:
-        accuracy = eval_accuracy(fully_connected_network.eval(X_val), y_val)
+        accuracy = utils.eval_accuracy(fully_connected_network.eval(X_val), y_val)
         print("Validation Accuracy: %f" % accuracy)
         print()
 
-accuracy = eval_accuracy(fully_connected_network.eval(X_test), y_test)
+accuracy = utils.eval_accuracy(fully_connected_network.eval(X_test), y_test)
 print("Test Accuracy: %f" % accuracy)

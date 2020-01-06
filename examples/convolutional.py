@@ -4,9 +4,9 @@ from krikos.nn.network import Sequential
 from krikos.nn.regularization import L2
 
 from krikos.data.utils import *
-from krikos.nn.loss import SoftmaxCrossEntropyLoss
+from krikos.nn.loss import SoftmaxCrossEntropy
 
-loader = Loader(batch_size=16)
+loader = CIFAR10Loader(batch_size=16)
 
 layers = [Convolutional(3, 5, 4, stride=2),
           ReLU(),
@@ -20,7 +20,7 @@ layers = [Convolutional(3, 5, 4, stride=2),
 
           Convolutional(7, 10, 5, stride=1),
           Flatten()]
-loss = SoftmaxCrossEntropyLoss()
+loss = SoftmaxCrossEntropy()
 conv_network = Sequential(layers, loss, 1e-3, regularization=L2(0.01))
 
 for i in range(10000):

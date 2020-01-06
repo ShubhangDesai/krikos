@@ -13,9 +13,9 @@ class Loss(object):
         raise NotImplementedError
 
 
-class SoftmaxCrossEntropyLoss(Loss):
+class SoftmaxCrossEntropy(Loss):
     def __init__(self):
-        super(SoftmaxCrossEntropyLoss, self).__init__()
+        super(SoftmaxCrossEntropy, self).__init__()
 
     def forward(self, input, y):
         batch_size = input.shape[0]

@@ -2,9 +2,28 @@ import numpy as np
 import pickle
 
 class Loader(object):
-    def __init__(self, batch_size, path="datasets/cifar-10-batches-py"):
+    def __init__(self, batch_size):
         super(Loader, self).__init__()
         self.batch_size = batch_size
+
+        self.train_set, self.train_labels = None, None
+        self.validation_set, self.validation_labels = None, None
+        self.test_set, self.test_labels = None, None
+
+    def load_data(self, path):
+        raise NotImplementedError
+
+    def get_batch(self):
+        indeces = np.random.choice(self.train_set.shape[0], self.batch_size, replace=False)
+        batch = np.array([self.train_set[i] for i in indeces])
+        labels = np.array([self.train_labels[i] for i in indeces])
+
+        return batch, labels
+
+
+class CIFAR10Loader(Loader):
+    def __init__(self, batch_size, path="datasets/cifar-10-batches-py"):
+        super(CIFAR10Loader, self).__init__(batch_size)
 
         train, validation, test = self.load_data(path)
         self.train_set, self.train_labels = train
@@ -45,11 +64,3 @@ class Loader(object):
         set -= mean
         set /= std
         return set, mean, std
-
-
-    def get_batch(self):
-        indeces = np.random.choice(self.train_set.shape[0], self.batch_size, replace=False)
-        batch = np.array([self.train_set[i] for i in indeces])
-        labels = np.array([self.train_labels[i] for i in indeces])
-
-        return batch, labels
